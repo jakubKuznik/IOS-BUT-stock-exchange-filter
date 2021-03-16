@@ -1,0 +1,62 @@
+#!/bin/sh
+export POSIXLY_CORRECT=yes
+export LC_NUMERIC=en_us.UTF-8
+
+COMMAND=""
+LOG_FILES=""
+GZ_LOG_FILES=""
+
+
+
+
+print_help()
+{
+	echo "Usage: tradelog [-h|--help]"
+	echo "...... tradelog [FILTER...] [COMAND] [LOG...]"
+	echo ""
+}
+
+echo "$COMMAND"
+
+#Argument parser
+while [ "$#" -gt 0 ]; do
+
+	case "$1" in
+	list-tick | pos)
+		COMMAND="$1"
+		shift   #argmunet co našel provede a záhodí a nyní má index číslo 1 argmunet číslo 2 protože se to posune 
+		;;
+	-h)
+		print_help
+		exit 0
+		;;
+	-w)
+		WIDTH="$2"
+		shift
+		shift
+		;;
+	*)
+		if [  ]; then
+			GZ_LOG_FILES="$1 $G2_LOG_FILES"
+		else
+			LOG_FILES="$1 $LOG_FILES"
+		fi
+		;;
+
+
+	esac
+
+done
+
+echo "$COMMAND"
+
+READ_INPUT="gzip -d -c $GZIP | cat $LOG_FILES - | sort"
+READ_INPUT="cat $LOG_FILES" #nogzip files
+TICK_FILTER=""
+READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$0}'"
+
+if []
+	eval "$READ_FILRET_VSTUP | "
+
+
+
