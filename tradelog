@@ -5,7 +5,10 @@ export LC_NUMERIC=en_us.UTF-8
 COMMAND=""
 LOG_FILES=""
 GZ_LOG_FILES=""
-
+READ_INPUT=""
+READ_INPUT="" #nogzip files
+TICK_FILTER=""
+READ_FILTERED=""
 
 
 ##
@@ -28,44 +31,69 @@ argument_controler()
 	fi
 }
 
-echo "$COMMAND"
-argument_controler $@
+##
+# Parse input arguments and COMMANDS 
+argument_parser()
+{
+	while [ "$#" -gt 0 ]; do
 
-# Check if there are arguments 
-
-#Argument parser
-while [ "$#" -gt 0 ]; do
-
-		case "$1" in
-	list-tick | pos)
-		COMMAND="$1"
-		echo "tu "
-		shift   #argmunet co našel provede a záhodí a nyní má index číslo 1 argmunet číslo 2 protože se to posune 
-		;;
-	-h)
-		print_help
-		;;
-	-w)
-		WIDTH="$2"
-		shift
-		shift
-		;;
-	*)
-		echo "tady "
-		if [ "$1{FILE##*.}" == ".gz"  ]; then
-			GZ_LOG_FILES="$1 $G2_LOG_FILES"
-		else
-			LOG_FILES="$1 $LOG_FILES"
-		fi
-		shift
-		;;
-
-	esac
+		#COMMAND##################
+			case "$1" in #COMMANDS THERE CAN BE ONLY ONE 
+		list-tick | pos | profit | last-price | hits-ord | graph-pos )
+			COMMAND="$1"
+			echo "tu "
+			shift   #argmunet co našel provede a záhodí a nyní má index číslo 1 argmunet číslo 2 protože se to posune 
+			;;
 	
-done
+		#HELP###############
+		-h) 
+			print_help
+			;;
+		
+		#FILTERS#################	
+		-a) #after DATETIME
+			
+			shift
+			;;
+		-b) #before DATETIME
+			
+			shift
+			;;
+		-t) #ticker
+
+			shift
+			;;
+
+		-w) #width
+
+			WIDTH="$2"
+			shift
+			shift
+			;;
+		#LOG#################
+		
+		*)
+			if [ `echo  $1 | grep "\.gz"` ]; then  	#if file ends with .gz
+				GZ_LOG_FILES="$1 $G2_LOG_FILES"		
+			else
+				LOG_FILES="$1 $LOG_FILES"
+			fi
+			shift
+			;;
+
+		esac
+		
+	done
+}
 
 
-echo "$COMMAND"
+argument_controler $@  # call argument controler and send all the program arguments as funct argument. 
+argument_parser $@    # Parse arguments and store them.
+#argument_parser()
+
+echo "command: $COMMAND"
+echo "gz_l_f:  $GZ_LOG_FILES"
+echo "l_f>     $LOG_FILES"
 
 READ_INPUT="gzip -d -c $GZIP | cat $LOG_FILES - | sort"
 READ_INPUT="cat $LOG_FILES" #nogzip files
@@ -75,5 +103,8 @@ READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$
 if [ ]; then
 	eval "$READ_FILRET_VSTUP | "
 fi
+
+
+
 
 
