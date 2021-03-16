@@ -22,15 +22,14 @@ print_help()
 # Check if there is some arguments if no exit 0
 argument_controler()
 {
-	if [ "$#" -eq "0" ]
-		then
-			echo "No arguments"
-			exit 0
+	if [ "$#" -eq "0" ];then
+		echo "No arguments"
+		exit 0
 	fi
 }
 
 echo "$COMMAND"
-argument_controler
+argument_controler $@
 
 # Check if there are arguments 
 
