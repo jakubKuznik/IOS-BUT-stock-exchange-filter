@@ -8,27 +8,43 @@ GZ_LOG_FILES=""
 
 
 
-
+##
+# Just printi help and exit with code 0
 print_help()
 {
 	echo "Usage: tradelog [-h|--help]"
 	echo "...... tradelog [FILTER...] [COMAND] [LOG...]"
 	echo ""
+	exit 0
+}
+
+##
+# Check if there is some arguments if no exit 0
+argument_controler()
+{
+	if [ "$#" -eq "0" ]
+		then
+			echo "No arguments"
+			exit 0
+	fi
 }
 
 echo "$COMMAND"
+argument_controler
+
+# Check if there are arguments 
 
 #Argument parser
 while [ "$#" -gt 0 ]; do
 
-	case "$1" in
+		case "$1" in
 	list-tick | pos)
 		COMMAND="$1"
+		echo "tu "
 		shift   #argmunet co našel provede a záhodí a nyní má index číslo 1 argmunet číslo 2 protože se to posune 
 		;;
 	-h)
 		print_help
-		exit 0
 		;;
 	-w)
 		WIDTH="$2"
@@ -36,17 +52,19 @@ while [ "$#" -gt 0 ]; do
 		shift
 		;;
 	*)
-		if [  ]; then
+		echo "tady "
+		if [ "$1{FILE##*.}" == ".gz"  ]; then
 			GZ_LOG_FILES="$1 $G2_LOG_FILES"
 		else
 			LOG_FILES="$1 $LOG_FILES"
 		fi
+		shift
 		;;
 
-
 	esac
-
+	
 done
+
 
 echo "$COMMAND"
 
@@ -55,8 +73,8 @@ READ_INPUT="cat $LOG_FILES" #nogzip files
 TICK_FILTER=""
 READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$0}'"
 
-if []
+if [ ]; then
 	eval "$READ_FILRET_VSTUP | "
-
+fi
 
 
