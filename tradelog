@@ -24,8 +24,8 @@ print_help()
 	echo ".. profit ....... List of profit from lock positions."
 	echo ".. pos .......... List of values current held positions"
 	echo ".. last-price ... Print last value of every known thicker."
-	echo "...hist-ord ..... List history of transaction by thicker."
-	echo "...graph-pos .... Shov value graph of thicker. "
+	echo ".. hist-ord ..... List history of transaction by thicker."
+	echo ".. graph-pos .... Shov value graph of thicker. "
 	echo "FILTER"
 	echo ". -a DATETIME ... Only records after this date."
 	echo ". -b DATETIME ... Only records before this date."
@@ -37,12 +37,87 @@ print_help()
 
 ##
 # Check if there is some arguments if no exit 0
-argument_controler()
+argument_controler_others()
 {
 	if [ "$#" -eq "0" ];then
 		echo "No arguments"
 		exit 0
 	fi
+}
+
+
+
+##
+# 
+after_date_filter()
+{
+	echo ""
+}
+
+##
+# 
+before_date_filter()
+{
+	echo ""
+}
+
+
+##
+# 
+ticker_filter()
+{
+	echo ""
+}
+
+##
+# 
+width_filter()
+{
+	echo ""
+}
+
+##
+#
+list_tick_comm()
+{
+	echo ""
+}
+
+##
+#
+profit_comm()
+{
+	echo ""
+}
+
+
+##
+#
+pos_comm()
+{
+	echo ""
+}
+
+##
+#
+last_price_comm()
+{
+	echo ""
+}
+
+
+##
+#
+hist_ord_comm()
+{
+	echo ""
+}
+
+##
+#
+graph_pos_comm()
+{
+	echo ""
 }
 
 ##
@@ -86,7 +161,7 @@ argument_parser()
 			;;
 		#LOG#################
 		
-		*)
+		*) #GETING LOG FILES THERE CAN BE MULTIPLE 
 			if [ `echo  $1 | grep "\.gz"` ]; then  	#if file ends with .gz
 				GZ_LOG_FILES="$1 $G2_LOG_FILES"		
 			else
@@ -101,7 +176,7 @@ argument_parser()
 }
 
 
-argument_controler $@  # call argument controler and send all the program arguments as funct argument. 
+argument_controler_others $@  # call argument controler and send all the program arguments as funct argument. 
 argument_parser $@    # Parse arguments and store them.
 #argument_parser()
 
