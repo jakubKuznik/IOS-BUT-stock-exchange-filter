@@ -17,7 +17,21 @@ print_help()
 {
 	echo "Usage: tradelog [-h|--help]"
 	echo "...... tradelog [FILTER...] [COMAND] [LOG...]"
+	echo "DATETIME == YYYY-MM-DD HH:MM:SS"
 	echo ""
+	echo "COMMANDS"
+	echo ".. list-tick .... List of stock echange tickers."
+	echo ".. profit ....... List of profit from lock positions."
+	echo ".. pos .......... List of values current held positions"
+	echo ".. last-price ... Print last value of every known thicker."
+	echo "...hist-ord ..... List history of transaction by thicker."
+	echo "...graph-pos .... Shov value graph of thicker. "
+	echo "FILTER"
+	echo ". -a DATETIME ... Only records after this date."
+	echo ". -b DATETIME ... Only records before this date."
+	echo ". -t TICKER ..... Only records with given thicker. You can specify multiple thickers."
+	echo ". -w WIDTH ...... Define width of longest row. w > 0"
+
 	exit 0
 }
 
@@ -46,7 +60,7 @@ argument_parser()
 			;;
 	
 		#HELP###############
-		-h) 
+		-h)
 			print_help
 			;;
 		
