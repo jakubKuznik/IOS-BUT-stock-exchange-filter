@@ -2,13 +2,11 @@
 export POSIXLY_CORRECT=yes
 export LC_NUMERIC=en_us.UTF-8
 
-COMMAND=""
-LOG_FILES=""
-GZ_LOG_FILES=""
-READ_INPUT=""
-READ_INPUT="" #nogzip files
-TICK_FILTER=""
-READ_FILTERED=""
+COMMAND=""		#Store arguments commands 
+LOG_FILES=""		##Input file in .log format
+GZ_LOG_FILES="" 	#Input file in .gz archiv
+READ_INPUT=""		#Here i ll store input logs 
+READ_FILTERED=""	#
 
 
 ##
@@ -130,7 +128,6 @@ argument_parser()
 			case "$1" in #COMMANDS THERE CAN BE ONLY ONE 
 		list-tick | pos | profit | last-price | hits-ord | graph-pos )
 			COMMAND="$1"
-			echo "tu "
 			shift   #argmunet co našel provede a záhodí a nyní má index číslo 1 argmunet číslo 2 protože se to posune 
 			;;
 	
@@ -159,11 +156,11 @@ argument_parser()
 			shift
 			shift
 			;;
-		#LOG#################
 		
+		#LOG#################
 		*) #GETING LOG FILES THERE CAN BE MULTIPLE 
 			if [ `echo  $1 | grep "\.gz"` ]; then  	#if file ends with .gz
-				GZ_LOG_FILES="$1 $G2_LOG_FILES"		
+				GZ_LOG_FILES="$1 $GZ_LOG_FILES"		
 			else
 				LOG_FILES="$1 $LOG_FILES"
 			fi
@@ -175,19 +172,41 @@ argument_parser()
 	done
 }
 
+##
+# Check if inputs files exist. 
+bad_argument_error()
+{
+	if [ ! -f ${GZ_LOG_FILES} ]; then 
+		>&2 echo "error file doesnt exist."
+		exit 1	
+	fi
+	if [ ! -f ${LOG_FILES} ]; then
+		>&2 echo "error file doesnt exist."
+		exit 1	
+	fi
+	return 0
+}
+debug_tempo()
+{
+	echo "command: $COMMAND"
+	echo "gz_l_f:  $GZ_LOG_FILES"
+	echo "l_f>     $LOG_FILES"
+}
 
-argument_controler_others $@  # call argument controler and send all the program arguments as funct argument. 
-argument_parser $@    # Parse arguments and store them.
-#argument_parser()
 
-echo "command: $COMMAND"
-echo "gz_l_f:  $GZ_LOG_FILES"
-echo "l_f>     $LOG_FILES"
+argument_controler_others $@ 	# Call argument controler and send all the program arguments as funct argument. 
+argument_parser $@    		# Parse arguments and store them.
 
-READ_INPUT="gzip -d -c $GZIP | cat $LOG_FILES - | sort"
-READ_INPUT="cat $LOG_FILES" #nogzip files
+debug_tempo 	#Giv debug information. 
+bad_argument_error
+
+#READ_INPUT="gzip -d -c $GZIP | cat $LOG_FILES - | sort"
+READ_INPUT=$(cat $LOG_FILES)
 TICK_FILTER=""
 READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$0}'"
+
+
+echo "$READ_INPUT"
 
 if [ ]; then
 	eval "$READ_FILRET_VSTUP | "
