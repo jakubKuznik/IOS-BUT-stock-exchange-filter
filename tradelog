@@ -34,18 +34,6 @@ print_help()
 }
 
 ##
-# Check if there is some arguments if no exit 0
-argument_controler_others()
-{
-	if [ "$#" -eq "0" ];then
-		echo "No arguments"
-		exit 0
-	fi
-}
-
-
-
-##
 # 
 after_date_filter()
 {
@@ -122,6 +110,9 @@ graph_pos_comm()
 # Parse input arguments and COMMANDS 
 argument_parser()
 {
+	if [ "$#" -eq "0" ];then
+		return 0	
+	fi
 	while [ "$#" -gt 0 ]; do
 
 		#COMMAND##################
@@ -186,6 +177,25 @@ bad_argument_error()
 	fi
 	return 0
 }
+##
+# If there are no params it store input from stdin to READ_INPUT
+# else it store from given files 
+store_input()
+{
+
+	# IF THERE ARE NO PARRAMETERS i ll store stdin
+	if [ -z "$COMMAND" ] && [ -z "$LOG_FILES" ] && [ -z "$GZ_LOG_FILES" ]; then
+		echo"ulozim stdin"	
+		# TODO fix story from stdin. 
+		READ_INPUT=$(</dev/stdin)
+
+	else
+		# TODO add gzip reading 
+		echo"tu"	
+		READ_INPUT=$(cat $LOG_FILES)
+	fi		
+}
+
 debug_tempo()
 {
 	echo "command: $COMMAND"
@@ -194,18 +204,20 @@ debug_tempo()
 }
 
 
+
 argument_controler_others $@ 	# Call argument controler and send all the program arguments as funct argument. 
 argument_parser $@    		# Parse arguments and store them.
 
-debug_tempo 	#Giv debug information. 
-bad_argument_error
+debug_tempo 		# Giv debug information. 
+bad_argument_error	# If program has bad arguments it ll exit with error
+store_input		# Store inputs to READ_INPUT 
 
 #READ_INPUT="gzip -d -c $GZIP | cat $LOG_FILES - | sort"
-READ_INPUT=$(cat $LOG_FILES)
 TICK_FILTER=""
 READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$0}'"
 
 
+echo "$READ_INPUT"
 echo "$READ_INPUT"
 
 if [ ]; then
