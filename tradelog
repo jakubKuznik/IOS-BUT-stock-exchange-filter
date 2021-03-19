@@ -207,7 +207,10 @@ store_input()
 		READ_INPUT=$(gzip -d -c $GZ_LOG_FILES)
 	else
 		READ_INPUT=$(cat $LOG_FILES)
-	fi		
+	fi
+	READ_INPUT=$(echo "$READ_INPUT" | sort -u) 
+	READ_INPUT=$(echo "$READ_INPUT" | sort -t';' -k2) 
+	
 }
 
 debug_tempo()
