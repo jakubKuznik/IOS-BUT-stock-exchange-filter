@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 export POSIXLY_CORRECT=yes
-export LC_NUMERIC=en_us.UTF-8
+export LC_ALL=C
 
 COMMAND=""		# Store arguments commands 
 LOG_FILES=""		# Input file in .log format
@@ -38,20 +38,6 @@ print_help()
 	exit 0
 }
 
-
-##
-# 
-ticker_filter()
-{
-	echo ""
-}
-
-##
-# 
-width_filter()
-{
-	echo ""
-}
 
 ##
 #
@@ -122,27 +108,28 @@ argument_parser()
 			print_help
 			;;
 		#FILTERS#################	
-		-a) #after DATETIME
-			
-			IS_T_COM_OR_FIL="1"	# Is there command or filterr 
-			
-			:"
-			
+		-a) #after DATETIME="YYYY-MM-DD HH:MM:SS"
 			echo "$1 $2"
-			if [[ $2 =~ [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] ]]; then
+			if [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
 				echo "gud "	
 			else
-				echo "ERROR date should be in YYYY-MM-DD format." >&2 
+				echo "ERROR date should be in YYYY-MM-DD HH:DD:SS format." >&2 
 				exit 2	
 			fi
-			"
+			IS_T_COM_OR_FIL="1"	# Is there command or filterr 
 			AFTER_TIME=$2	
 			shift
 			shift
 			;;
 		-b) #before DATETIME
+			if [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
+				echo "gud "	
+			else
+				echo "ERROR date should be in YYYY-MM-DD HH:DD:SS format." >&2 
+				exit 2	
+			fi
 			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
-			BEFORE_TIME="$2"		# write only logs before this time 
+			BEFORE_TIME="$2"	# write only logs before this time 
 			shift
 			shift
 			;;
@@ -230,9 +217,7 @@ debug_tempo()
 }
 
 
-
-argument_controler_others $@ 	# Call argument controler and send all the program arguments as funct argument. 
-argument_parser $@    		# Parse arguments and store them.
+argument_parser "$@" 		# Parse arguments and store them.
 
 bad_argument_error	# If program has bad arguments it ll exit with error
 store_input		# Store inputs to READ_INPUT 
