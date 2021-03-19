@@ -126,18 +126,23 @@ argument_parser()
 		-h)
 			print_help
 			;;
-		
+		--help)
+			print_help
+			;;
 		#FILTERS#################	
 		-a) #after DATETIME
 			
+			shift
 			shift
 			;;
 		-b) #before DATETIME
 			
 			shift
+			shift
 			;;
 		-t) #ticker
 
+			shift
 			shift
 			;;
 
@@ -182,13 +187,11 @@ bad_argument_error()
 # else it store from given files 
 store_input()
 {
-
+	
 	# IF THERE ARE NO PARRAMETERS i ll store stdin
 	if [ -z "$COMMAND" ] && [ -z "$LOG_FILES" ] && [ -z "$GZ_LOG_FILES" ]; then
-		echo"ulozim stdin"	
-		# TODO fix story from stdin. 
-		READ_INPUT=$(</dev/stdin)
-
+		READ_INPUT="${1:-/dev/stdin}"
+		READ_INPUT=$(cat "$READ_INPUT") 
 	else
 		# TODO add gzip reading 
 		echo"tu"	
@@ -208,7 +211,6 @@ debug_tempo()
 argument_controler_others $@ 	# Call argument controler and send all the program arguments as funct argument. 
 argument_parser $@    		# Parse arguments and store them.
 
-debug_tempo 		# Giv debug information. 
 bad_argument_error	# If program has bad arguments it ll exit with error
 store_input		# Store inputs to READ_INPUT 
 
@@ -219,6 +221,8 @@ READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$
 
 echo "$READ_INPUT"
 echo "$READ_INPUT"
+
+debug_tempo 		# Giv debug information. 
 
 if [ ]; then
 	eval "$READ_FILRET_VSTUP | "
