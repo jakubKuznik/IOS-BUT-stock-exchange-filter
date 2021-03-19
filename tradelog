@@ -2,12 +2,12 @@
 export POSIXLY_CORRECT=yes
 export LC_NUMERIC=en_us.UTF-8
 
-COMMAND=""		#Store arguments commands 
-LOG_FILES=""		##Input file in .log format
-GZ_LOG_FILES="" 	#Input file in .gz archiv
-READ_INPUT=""		#Here i ll store input logs 
+COMMAND=""		# Store arguments commands 
+LOG_FILES=""		# Input file in .log format
+GZ_LOG_FILES="" 	# Input file in .gz archiv
+READ_INPUT=""		# Here i ll store input logs 
 READ_FILTERED=""	#
-
+IS_T_COM_OR_FIL="0"	# Is there command or filter indicator
 
 ##
 # Just printi help and exit with code 0
@@ -119,6 +119,7 @@ argument_parser()
 			case "$1" in #COMMANDS THERE CAN BE ONLY ONE 
 		list-tick | pos | profit | last-price | hits-ord | graph-pos )
 			COMMAND="$1"
+			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
 			shift   #argmunet co našel provede a záhodí a nyní má index číslo 1 argmunet číslo 2 protože se to posune 
 			;;
 	
@@ -132,16 +133,19 @@ argument_parser()
 		#FILTERS#################	
 		-a) #after DATETIME
 			
+			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
 			shift
 			shift
 			;;
 		-b) #before DATETIME
 			
+			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
 			shift
 			shift
 			;;
 		-t) #ticker
 
+			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
 			shift
 			shift
 			;;
@@ -149,6 +153,7 @@ argument_parser()
 		-w) #width
 
 			WIDTH="$2"
+			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
 			shift
 			shift
 			;;
@@ -190,11 +195,17 @@ store_input()
 	
 	# IF THERE ARE NO PARRAMETERS i ll store stdin
 	if [ -z "$COMMAND" ] && [ -z "$LOG_FILES" ] && [ -z "$GZ_LOG_FILES" ]; then
-		READ_INPUT="${1:-/dev/stdin}"
-		READ_INPUT=$(cat "$READ_INPUT") 
+		if [ $IS_T_COM_OR_FIL -eq "1" ]; then
+			>&2 echo "If there is input from stdin u cant add commands or filters."
+		else
+			READ_INPUT="${1:-/dev/stdin}"
+			READ_INPUT=$(cat "$READ_INPUT") 
+		fi
+	elif [ ! -z "$LOG_FILES" ] && [ ! -z "$GZ_LOG_FILES" ]; then
+		READ_INPUT=$(gzip -d -c $GZ_LOG_FILES && cat $LOG_FILES)
+	elif [ ! -z "$GZ_LOG_FILES" ]; then
+		READ_INPUT=$(gzip -d -c $GZ_LOG_FILES)
 	else
-		# TODO add gzip reading 
-		echo"tu"	
 		READ_INPUT=$(cat $LOG_FILES)
 	fi		
 }
@@ -214,7 +225,6 @@ argument_parser $@    		# Parse arguments and store them.
 bad_argument_error	# If program has bad arguments it ll exit with error
 store_input		# Store inputs to READ_INPUT 
 
-#READ_INPUT="gzip -d -c $GZIP | cat $LOG_FILES - | sort"
 TICK_FILTER=""
 READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$0}'"
 
