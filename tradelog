@@ -8,6 +8,11 @@ GZ_LOG_FILES="" 	# Input file in .gz archiv
 READ_INPUT=""		# Here i ll store input logs 
 READ_FILTERED=""	#
 IS_T_COM_OR_FIL="0"	# Is there command or filter indicator
+BEFORE_TIME=""		# write only logs before this time 
+AFTER_TIME="9999-99-99" # WRITE only logs afther this time 
+WIDTH=""
+THICK=""
+
 
 ##
 # Just printi help and exit with code 0
@@ -31,20 +36,6 @@ print_help()
 	echo ". -w WIDTH ...... Define width of longest row. w > 0"
 
 	exit 0
-}
-
-##
-# 
-after_date_filter()
-{
-	echo ""
-}
-
-##
-# 
-before_date_filter()
-{
-	echo ""
 }
 
 
@@ -133,26 +124,40 @@ argument_parser()
 		#FILTERS#################	
 		-a) #after DATETIME
 			
-			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
+			IS_T_COM_OR_FIL="1"	# Is there command or filterr 
+			
+			:"
+			
+			echo "$1 $2"
+			if [[ $2 =~ [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] ]]; then
+				echo "gud "	
+			else
+				echo "ERROR date should be in YYYY-MM-DD format." >&2 
+				exit 2	
+			fi
+			"
+			AFTER_TIME=$2	
 			shift
 			shift
 			;;
 		-b) #before DATETIME
-			
 			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
+			BEFORE_TIME="$2"		# write only logs before this time 
 			shift
 			shift
 			;;
 		-t) #ticker
 
 			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
+			THICK="$2"
 			shift
 			shift
 			;;
 
 		-w) #width
-
-			WIDTH="$2"
+			if [ $2 -gt "0" ]; then
+				WIDTH="$2"
+			fi
 			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
 			shift
 			shift
@@ -178,11 +183,11 @@ argument_parser()
 bad_argument_error()
 {
 	if [ ! -f ${GZ_LOG_FILES} ]; then 
-		>&2 echo "error file doesnt exist."
+		echo "error file doesnt exist." >&2  
 		exit 1	
 	fi
 	if [ ! -f ${LOG_FILES} ]; then
-		>&2 echo "error file doesnt exist."
+		echo "error file doesnt exist." >&2 
 		exit 1	
 	fi
 	return 0
@@ -196,7 +201,7 @@ store_input()
 	# IF THERE ARE NO PARRAMETERS i ll store stdin
 	if [ -z "$COMMAND" ] && [ -z "$LOG_FILES" ] && [ -z "$GZ_LOG_FILES" ]; then
 		if [ $IS_T_COM_OR_FIL -eq "1" ]; then
-			>&2 echo "If there is input from stdin u cant add commands or filters."
+			echo "If there is input from stdin u cant add commands or filters." >&2 
 		else
 			READ_INPUT="${1:-/dev/stdin}"
 			READ_INPUT=$(cat "$READ_INPUT") 
@@ -218,6 +223,10 @@ debug_tempo()
 	echo "command: $COMMAND"
 	echo "gz_l_f:  $GZ_LOG_FILES"
 	echo "l_f>     $LOG_FILES"
+	echo "aft:     $AFTER_TIME"
+	echo "bft:     $BEFORE_TIME"
+	echo "width:   $BEFORE_TIME"
+	echo "thick:   $THICK"
 }
 
 
@@ -229,7 +238,7 @@ bad_argument_error	# If program has bad arguments it ll exit with error
 store_input		# Store inputs to READ_INPUT 
 
 TICK_FILTER=""
-READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$0}'"
+#READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$0}'"
 
 
 echo "$READ_INPUT"
