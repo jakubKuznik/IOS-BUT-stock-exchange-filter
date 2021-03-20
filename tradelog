@@ -10,9 +10,9 @@ FILTER=""		# I ll change READ_INPUT using filter
 IS_T_COM_OR_FIL="0"	# Is there command or filter indicator
 BEFORE_TIME="9999-99-99" # write only logs before this time 
 AFTER_TIME="" 		# WRITE only logs afther this time 
-WIDTH=""
-THICK=""
-
+WIDTH=""	
+THICK=""		# Here i store tickers separate by ;
+THICK_COUNT="0"		# Increment after every tick
 
 ##
 # Just printi help and exit with code 0
@@ -109,10 +109,7 @@ argument_parser()
 			;;
 		#FILTERS#################	
 		-a) #after DATETIME="YYYY-MM-DD HH:MM:SS"
-			echo "$1 $2"
-			if [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
-				echo "gud "	
-			else
+			if ! [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
 				echo "ERROR date should be in YYYY-MM-DD HH:DD:SS format." >&2 
 				exit 2	
 			fi
@@ -122,9 +119,7 @@ argument_parser()
 			shift
 			;;
 		-b) #before DATETIME
-			if [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
-				echo "gud "	
-			else
+			if ! [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
 				echo "ERROR date should be in YYYY-MM-DD HH:DD:SS format." >&2 
 				exit 2	
 			fi
@@ -134,9 +129,13 @@ argument_parser()
 			shift
 			;;
 		-t) #ticker
-
+			if [ -z "$2" ]; then
+				echo "ERROR missing argument after -t" >&2 
+				exit 2	
+			fi
 			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
-			THICK="$2"
+			THICK="$THICK;$2"
+			THICK_COUNT=`echo "$THICK_COUNT + 1" | bc`		# Increment after every tick
 			shift
 			shift
 			;;
@@ -206,20 +205,20 @@ store_input()
 
 debug_tempo()
 {
-	echo "command: $COMMAND"
-	echo "gz_l_f:  $GZ_LOG_FILES"
-	echo "l_f>     $LOG_FILES"
-	echo "aft:     $AFTER_TIME"
-	echo "bft:     $BEFORE_TIME"
-	echo "width:   $WIDTH"
-	echo "thick:   $THICK"
+	echo "command: $COMMAND" >&2
+	echo "gz_l_f:  $GZ_LOG_FILES" >&2
+	echo "l_f>     $LOG_FILES" >&2
+	echo "aft:     $AFTER_TIME" >&2
+	echo "bft:     $BEFORE_TIME" >&2
+	echo "width:   $WIDTH" >&2
+	echo "thick:   $THICK" >&2
+	echo "thick_c: $THICK_COUNT" >&2
 }
 
 
 argument_parser "$@" 		# Parse arguments and store them.
-
-bad_argument_error	# If program has bad arguments it ll exit with error
-store_input		# Store inputs to READ_INPUT 
+bad_argument_error		# If program has bad arguments it ll exit with error
+store_input			# Store inputs to READ_INPUT 
 
 # Filter olny before and after time 
 FILTER=`echo "$READ_INPUT" | awk -F ';' -v a="$BEFORE_TIME" '\$1 < a {print \$0}'`
@@ -227,13 +226,22 @@ READ_INPUT="$FILTER"
 FILTER=`echo "$READ_INPUT" | awk -F ';' -v a="$AFTER_TIME" '\$1 > a {print \$0}'`
 READ_INPUT="$FILTER"
 
+#Filter by given ticker
+if ! [ -z "$THICK" ]; then #if THICK is not empty
 
+	FILTER_SUM=""
+	# For every ticker in THICK
+	for ((i=2; i <= $THICK_COUNT+1; i++)); do
+		one_thick=`echo $THICK | cut -d ";" -f $i`
+		FILTER=`echo "$READ_INPUT" | awk -F ';' -v a="$one_thick" '\$2 == a {print \$0}'`
+		FILTER_SUM="$FILTER_SUM$FILTER"
+	done
+	READ_INPUT="$FILTER_SUM"
+fi
 
 #READ_INPUT=$(echo "$READ_INPUT" | sort -t';' -k2)  #sort by ticker 
 echo "$READ_INPUT"
 debug_tempo 		# Giv debug information. 
-
-
 
 #READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$0}'"
 
