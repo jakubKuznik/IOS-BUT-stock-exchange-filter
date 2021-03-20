@@ -8,8 +8,8 @@ GZ_LOG_FILES="" 	# Input file in .gz archiv
 READ_INPUT=""		# Here i ll store input logs 
 FILTER=""		# I ll change READ_INPUT using filter	
 IS_T_COM_OR_FIL="0"	# Is there command or filter indicator
-BEFORE_TIME=""		# write only logs before this time 
-AFTER_TIME="9999-99-99" # WRITE only logs afther this time 
+BEFORE_TIME="9999-99-99" # write only logs before this time 
+AFTER_TIME="" 		# WRITE only logs afther this time 
 WIDTH=""
 THICK=""
 
@@ -220,8 +220,15 @@ argument_parser "$@" 		# Parse arguments and store them.
 
 bad_argument_error	# If program has bad arguments it ll exit with error
 store_input		# Store inputs to READ_INPUT 
+
+# Filter olny before and after time 
 FILTER=`echo "$READ_INPUT" | awk -F ';' -v a="$BEFORE_TIME" '\$1 < a {print \$0}'`
 READ_INPUT="$FILTER"
+FILTER=`echo "$READ_INPUT" | awk -F ';' -v a="$AFTER_TIME" '\$1 > a {print \$0}'`
+READ_INPUT="$FILTER"
+
+
+
 #READ_INPUT=$(echo "$READ_INPUT" | sort -t';' -k2)  #sort by ticker 
 echo "$READ_INPUT"
 debug_tempo 		# Giv debug information. 
