@@ -43,7 +43,10 @@ print_help()
 #
 list_tick_comm()
 {
-	echo ""
+
+	FILTER=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
+	READ_INPUT="$FILTER"	
+	READ_INPUT=$(echo "$READ_INPUT" | sort -u) 
 }
 
 ##
@@ -213,35 +216,36 @@ store_input()
 # Just call propriate command based on $COMMAND
 call_command()
 {
+	
 	case $COMMAND in
 
 		list-tick)
-			echo "list-tick"
+			list_tick_comm
 			;;
 		pos)
-			echo "pos"
+			pos_comm
 			;;
 		profit)
-			echo "profit"
+			profit_comm
 			;;
 		last-price)
-			echo "last-price"
+			last_price_comm
 			;;
 		hist-ord)
-			echo "hist-ord"
+			hist_ord_comm
 			;;
 		graph-pos)
-			echo "graph-graph"
+			graph_pos_comm
 			;;
 		*)
 			;;
 
 	esac
-	return 0	
 }
 
 debug_tempo()
 {
+	echo ""
 	echo "command: $COMMAND" >&2
 	echo "gz_l_f:  $GZ_LOG_FILES" >&2
 	echo "l_f>     $LOG_FILES" >&2
