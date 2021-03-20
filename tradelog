@@ -93,8 +93,13 @@ argument_parser()
 	while [ "$#" -gt 0 ]; do
 
 		#COMMAND##################
-			case "$1" in #COMMANDS THERE CAN BE ONLY ONE 
-		list-tick | pos | profit | last-price | hits-ord | graph-pos )
+		case "$1" in #COMMANDS THERE CAN BE ONLY ONE 
+		list-tick | pos | profit | last-price | hist-ord | graph-pos )
+			
+			if [ "$IS_T_COM_OR_FIL" -eq "1" ]; then
+				echo "ERROR Multiple commands are not possible." >&2 
+				exit 2	
+			fi
 			COMMAND="$1"
 			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
 			shift   #argmunet co našel provede a záhodí a nyní má index číslo 1 argmunet číslo 2 protože se to posune 
@@ -168,6 +173,7 @@ argument_parser()
 # Check if inputs files exist. 
 bad_argument_error()
 {
+
 	if [ ! -f ${GZ_LOG_FILES} ]; then 
 		echo "error file doesnt exist." >&2  
 		exit 1	
@@ -203,6 +209,37 @@ store_input()
 	
 }
 
+##
+# Just call propriate command based on $COMMAND
+call_command()
+{
+	case $COMMAND in
+
+		list-tick)
+			echo "list-tick"
+			;;
+		pos)
+			echo "pos"
+			;;
+		profit)
+			echo "profit"
+			;;
+		last-price)
+			echo "last-price"
+			;;
+		hist-ord)
+			echo "hist-ord"
+			;;
+		graph-pos)
+			echo "graph-graph"
+			;;
+		*)
+			;;
+
+	esac
+	return 0	
+}
+
 debug_tempo()
 {
 	echo "command: $COMMAND" >&2
@@ -220,6 +257,7 @@ argument_parser "$@" 		# Parse arguments and store them.
 bad_argument_error		# If program has bad arguments it ll exit with error
 store_input			# Store inputs to READ_INPUT 
 
+#FILTER SECTION #################################
 # Filter olny before and after time 
 FILTER=`echo "$READ_INPUT" | awk -F ';' -v a="$BEFORE_TIME" '\$1 < a {print \$0}'`
 READ_INPUT="$FILTER"
@@ -238,12 +276,15 @@ if ! [ -z "$THICK" ]; then #if THICK is not empty
 	done
 	READ_INPUT="$FILTER_SUM"
 fi
+#TODO WIDTH FILTER
+##################################################
 
-#READ_INPUT=$(echo "$READ_INPUT" | sort -t';' -k2)  #sort by ticker 
+call_command # Just call propriate command based on $COMMAND
+
+
 echo "$READ_INPUT"
 debug_tempo 		# Giv debug information. 
 
-#READ_FILTERED="eval $READ_INPUT | awk -F ';' 'if (\$1 > $AFTER_TIME && {print \$0}'"
 
 
 
