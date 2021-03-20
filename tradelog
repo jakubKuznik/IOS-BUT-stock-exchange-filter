@@ -201,7 +201,6 @@ store_input()
 		READ_INPUT=$(cat $LOG_FILES)
 	fi
 	READ_INPUT=$(echo "$READ_INPUT" | sort -u) 
-	READ_INPUT=$(echo "$READ_INPUT" | sort -t';' -k2) 
 	
 }
 
@@ -221,9 +220,9 @@ argument_parser "$@" 		# Parse arguments and store them.
 
 bad_argument_error	# If program has bad arguments it ll exit with error
 store_input		# Store inputs to READ_INPUT 
-FILTER="$READ_INPUT | awk final_arg -F ';' '{print \$0}'"
+FILTER=`echo "$READ_INPUT" | awk -F ';' -v a="$BEFORE_TIME" '\$1 < a {print \$0}'`
 READ_INPUT="$FILTER"
-
+#READ_INPUT=$(echo "$READ_INPUT" | sort -t';' -k2)  #sort by ticker 
 echo "$READ_INPUT"
 debug_tempo 		# Giv debug information. 
 
