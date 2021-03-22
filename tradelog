@@ -12,11 +12,7 @@ AFTER_TIME="" 		# WRITE only logs afther this time
 WIDTH=""	
 THICK=""		# Here i store tickers separate by ;
 THICK_COUNT="0"		# Increment after every tick
-
-IS_T_COM="0"	# Is there command or filter indicator
-
-#TODO MAX ONE -b -a 
-IS_T_FIL="0"	# Is there command or filter indicator
+IS_T_COM="0"		# Is there command or filter indicator
 
 ##
 # Just printi help and exit with code 0
@@ -70,15 +66,41 @@ profit_comm()
 	SUM1=`echo "$filter1" | awk -F ';' '{value = $1 - $2}END{printf("%.2f",value)}'`
 	
 	echo "$SUM1"
-	exit 1
+	exit 0
 }
-
 
 ##
 #
 pos_comm()
 {
-	echo ""
+	#first get thickers and count them 
+	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
+	ticker=$(echo "$ticker" | sort -u) 
+	
+	sum_ticker=`echo "$ticker" | wc -l`
+	
+	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
+		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
+		
+		# If ticker match with t sum it and print it 
+		filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
+
+		filter_sell=`echo "$filer_ticker" | awk -F ';' -v a="sell" '\$3 == a {print \$0}'`  #sell value 
+		filter_buy=`echo "$filer_ticker" | awk -F ';' -v a="buy" '\$3 == a {print \$0}'`  #sell value 
+		
+		SUM1=`echo "$filter_buy" | awk -F ';' '{value = $4 * $6}{sum += value}END{printf("%f.16", sum)}'`
+		SUM2=`echo "$filter_sell" | awk -F ';' '{value = $4 * $6}{sum += value}END{printf("%f.16", sum)}'`
+
+		filter1="$SUM1;$SUM2"
+		SUM1=`echo "$filter1" | awk -F ';' '{value = $1 - $2}END{printf("%05.22f",value)}'`
+		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$SUM1"`
+	done
+
+	#TODO nahradit %12 promenou s nejdelsim cislem
+	d=`echo "$FILTER_SUM" | sort -n -r -t ':' -k 2`
+	echo "$d" | awk -F ':' '{printf("%-9s : %12.2f  \n"),$1, $2}'
+	
+	exit 0
 }
 
 ##
