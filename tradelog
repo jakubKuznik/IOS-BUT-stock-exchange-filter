@@ -7,12 +7,16 @@ LOG_FILES=""		# Input file in .log format
 GZ_LOG_FILES="" 	# Input file in .gz archiv
 READ_INPUT=""		# Here i ll store input logs 
 FILTER=""		# I ll change READ_INPUT using filter	
-IS_T_COM_OR_FIL="0"	# Is there command or filter indicator
 BEFORE_TIME="9999-99-99" # write only logs before this time 
 AFTER_TIME="" 		# WRITE only logs afther this time 
 WIDTH=""	
 THICK=""		# Here i store tickers separate by ;
 THICK_COUNT="0"		# Increment after every tick
+
+IS_T_COM="0"	# Is there command or filter indicator
+
+#TODO MAX ONE -b -a 
+IS_T_FIL="0"	# Is there command or filter indicator
 
 ##
 # Just printi help and exit with code 0
@@ -22,8 +26,11 @@ print_help()
 	echo "...... tradelog [FILTER...] [COMAND] [LOG...]"
 	echo "DATETIME == YYYY-MM-DD HH:MM:SS"
 	echo ""
+	echo "Log format:"
+	echo "DATE TIME;TICKER;TYPE OF TRANSACTION;PRICE;CURRENCY;AMMOUT;ID"
+	echo ""
 	echo "COMMANDS"
-	echo ".. list-tick .... List of stock echange tickers."
+	echo ".. list-tick .... List of stock unique echange tickers in given file."
 	echo ".. profit ....... List of profit from lock positions."
 	echo ".. pos .......... List of values current held positions"
 	echo ".. last-price ... Print last value of every known thicker."
@@ -40,20 +47,30 @@ print_help()
 
 
 ##
-#
+# List unique tickers that are in log
 list_tick_comm()
 {
-
 	FILTER=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
 	READ_INPUT="$FILTER"	
 	READ_INPUT=$(echo "$READ_INPUT" | sort -u) 
 }
 
 ##
-#
+# Write sum of profits.
+# Profit = sum of sell transaction - sum of buy transaction 
 profit_comm()
 {
-	echo ""
+	filter1=`echo "$READ_INPUT" | awk -F ';' -v a="sell" '\$3 == a {print \$0}'`
+	filter2=`echo "$READ_INPUT" | awk -F ';' -v a="buy" '\$3 == a {print \$0}'`
+
+	SUM1=`echo "$filter1" | awk -F ';' '{value = $4 * $6}{sum += value}END{printf("%f.16", sum)}'`
+	SUM2=`echo "$filter2" | awk -F ';' '{value = $4 * $6}{sum += value}END{printf("%f.16", sum)}'`
+	
+	filter1="$SUM1;$SUM2"
+	SUM1=`echo "$filter1" | awk -F ';' '{value = $1 - $2}END{printf("%.2f",value)}'`
+	
+	echo "$SUM1"
+	exit 1
 }
 
 
@@ -80,7 +97,7 @@ hist_ord_comm()
 }
 
 ##
-#
+ #
 graph_pos_comm()
 {
 	echo ""
@@ -99,12 +116,12 @@ argument_parser()
 		case "$1" in #COMMANDS THERE CAN BE ONLY ONE 
 		list-tick | pos | profit | last-price | hist-ord | graph-pos )
 			
-			if [ "$IS_T_COM_OR_FIL" -eq "1" ]; then
+			if [ "$IS_T_COM" -eq "1" ]; then
 				echo "ERROR Multiple commands are not possible." >&2 
 				exit 2	
 			fi
 			COMMAND="$1"
-			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
+			IS_T_COM="1"	# Is there command or filter indicator
 			shift   #argmunet co našel provede a záhodí a nyní má index číslo 1 argmunet číslo 2 protože se to posune 
 			;;
 	
@@ -131,7 +148,6 @@ argument_parser()
 				echo "ERROR date should be in YYYY-MM-DD HH:DD:SS format." >&2 
 				exit 2	
 			fi
-			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
 			BEFORE_TIME="$2"	# write only logs before this time 
 			shift
 			shift
@@ -141,7 +157,6 @@ argument_parser()
 				echo "ERROR missing argument after -t" >&2 
 				exit 2	
 			fi
-			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
 			THICK="$THICK;$2"
 			THICK_COUNT=`echo "$THICK_COUNT + 1" | bc`		# Increment after every tick
 			shift
@@ -152,7 +167,6 @@ argument_parser()
 			if [ $2 -gt "0" ]; then
 				WIDTH="$2"
 			fi
-			IS_T_COM_OR_FIL="1"	# Is there command or filter indicator
 			shift
 			shift
 			;;
@@ -245,7 +259,6 @@ call_command()
 
 debug_tempo()
 {
-	echo ""
 	echo "command: $COMMAND" >&2
 	echo "gz_l_f:  $GZ_LOG_FILES" >&2
 	echo "l_f>     $LOG_FILES" >&2
@@ -283,12 +296,11 @@ fi
 #TODO WIDTH FILTER
 ##################################################
 
-call_command # Just call propriate command based on $COMMAND
+call_command 		# Just call propriate command based on $COMMAND
 
 
 echo "$READ_INPUT"
 debug_tempo 		# Giv debug information. 
-
 
 
 
