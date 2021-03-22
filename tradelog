@@ -289,7 +289,7 @@ if ! [ -z "$THICK" ]; then #if THICK is not empty
 	for ((i=2; i <= $THICK_COUNT+1; i++)); do
 		one_thick=`echo $THICK | cut -d ";" -f $i`
 		FILTER=`echo "$READ_INPUT" | awk -F ';' -v a="$one_thick" '\$2 == a {print \$0}'`
-		FILTER_SUM="$FILTER_SUM$FILTER"
+		FILTER_SUM=`echo "$FILTER_SUM" & echo "$FILTER"`
 	done
 	READ_INPUT="$FILTER_SUM"
 fi
