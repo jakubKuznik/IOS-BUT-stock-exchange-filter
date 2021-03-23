@@ -9,7 +9,7 @@ READ_INPUT=""		# Here i ll store input logs
 FILTER=""		# I ll change READ_INPUT using filter	
 BEFORE_TIME="9999-99-99" # write only logs before this time 
 AFTER_TIME="" 		# WRITE only logs afther this time 
-WIDTH=""	
+WIDTH="1000"		# Value for graph printing 	
 THICK=""		# Here i store tickers separate by ;
 THICK_COUNT="0"		# Increment after every tick
 IS_T_COM="0"		# Is there command or filter indicator
@@ -71,13 +71,12 @@ profit_comm()
 }
 
 ##
-#
+# Print actualy holden values sorted from bigest to smallest 
 pos_comm()
 {
 	#first get thickers and count them 
 	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
 	ticker=$(echo "$ticker" | sort -u) 
-	
 	sum_ticker=`echo "$ticker" | wc -l`
 	
 	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
@@ -92,35 +91,69 @@ pos_comm()
 
 		filter_sell=`echo "$filer_ticker" | awk -F ';' -v a="sell" '\$3 == a {print \$0}'`  #sell value 
 		filter_buy=`echo "$filer_ticker" | awk -F ';' -v a="buy" '\$3 == a {print \$0}'`  #sell value 
-		
 		SUM1=`echo "$filter_buy" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
 		SUM2=`echo "$filter_sell" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
 
 		filter1="$SUM1;$SUM2;$last_value"
-
 		SUM1=`echo "$filter1" | awk -F ';' '{value = ($1-$2)*$3}END{printf("%05.22f",value)}'`
 		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$SUM1"`
 	done
-
 	#TODO nahradit %12 promenou s nejdelsim cislem
 	d=`echo "$FILTER_SUM" | sort -n -r -t ':' -k 2`
+	echo "$d" | awk -F ':' '{printf("%-9s : %12.2f  \n"),$1, $2}'
+	exit 0
+}
+
+##
+# Get last price of Tickers sorted by alphabet.
+last_price_comm()
+{
+	#first get thickers and count them 
+	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
+	ticker=$(echo "$ticker" | sort -u) 
+	
+	sum_ticker=`echo "$ticker" | wc -l`
+	
+	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
+		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
+		
+		# If ticker match with t sum it and print it 
+		filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
+		#GETING LAST KNOWN VALUE 
+		last_line=`echo "$filer_ticker" | tail -1`
+		last_value=`echo "$last_line" | awk -F ';' '{print \$4}'`
+
+		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$last_value"`
+	done
+
+	#TODO nahradit %12 promenou s nejdelsim cislem
+	d=`echo "$FILTER_SUM" | sort -t ':' -k 1`
 	echo "$d" | awk -F ':' '{printf("%-9s : %12.2f  \n"),$1, $2}'
 	
 	exit 0
 }
 
 ##
-#
-last_price_comm()
-{
-	echo ""
-}
-
-
-##
-#
+# list transaction history in graph format.
 hist_ord_comm()
 {
+	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
+	ticker=$(echo "$ticker" | sort -u) 
+	sum_ticker=`echo "$ticker" | wc -l`
+	
+	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
+		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
+		
+		# If ticker match with t sum it and print it 
+		filter_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
+		SUM1=`echo "$filter_ticker" | wc -l `
+		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$SUM1"`
+	done
+	#TODO nahradit %12 promenou s nejdelsim cislem
+	d=`echo "$FILTER_SUM" | sort  -t ':' -k 1`
+	echo "$d" | awk -F ':' '{printf("%-9s : %12.2f  \n"),$1, $2}'
+	exit 0
+
 	echo ""
 }
 
@@ -135,6 +168,7 @@ graph_pos_comm()
 # Parse input arguments and COMMANDS 
 argument_parser()
 {
+	width_indicator="0"
 	if [ "$#" -eq "0" ];then
 		return 0	
 	fi
@@ -192,8 +226,17 @@ argument_parser()
 			;;
 
 		-w) #width
+
+			if [ "$width_indicator" -eq "1" ]; then
+				echo "ERROR width parameter." >&2 
+				exit 2	
+			fi
+			width_indicator="1"
 			if [ $2 -gt "0" ]; then
 				WIDTH="$2"
+			else
+				echo "ERROR width has to be positive number." >&2 
+				exit 2	
 			fi
 			shift
 			shift
@@ -208,9 +251,7 @@ argument_parser()
 			fi
 			shift
 			;;
-
 		esac
-		
 	done
 }
 
@@ -218,7 +259,6 @@ argument_parser()
 # Check if inputs files exist. 
 bad_argument_error()
 {
-
 	if [ ! -f ${GZ_LOG_FILES} ]; then 
 		echo "error file doesnt exist." >&2  
 		exit 1	
@@ -229,12 +269,12 @@ bad_argument_error()
 	fi
 	return 0
 }
+
 ##
 # If there are no params it store input from stdin to READ_INPUT
 # else it store from given files 
 store_input()
 {
-	
 	# IF THERE ARE NO PARRAMETERS i ll store stdin
 	if [ -z "$COMMAND" ] && [ -z "$LOG_FILES" ] && [ -z "$GZ_LOG_FILES" ]; then
 		if [ "$IS_T_COM_OR_FIL" -eq "1" ]; then
@@ -251,50 +291,28 @@ store_input()
 		READ_INPUT=$(cat $LOG_FILES)
 	fi
 	READ_INPUT=$(echo "$READ_INPUT" | sort -u) 
-	
 }
 
 ##
 # Just call propriate command based on $COMMAND
 call_command()
 {
-	
 	case $COMMAND in
-
 		list-tick)
-			list_tick_comm
-			;;
+			list_tick_comm; ;;
 		pos)
-			pos_comm
-			;;
+			pos_comm; ;;
 		profit)
-			profit_comm
-			;;
+			profit_comm; ;;
 		last-price)
-			last_price_comm
-			;;
+			last_price_comm; ;;
 		hist-ord)
-			hist_ord_comm
-			;;
+			hist_ord_comm; ;;
 		graph-pos)
-			graph_pos_comm
-			;;
+			graph_pos_comm; ;;
 		*)
 			;;
-
 	esac
-}
-
-debug_tempo()
-{
-	echo "command: $COMMAND" >&2
-	echo "gz_l_f:  $GZ_LOG_FILES" >&2
-	echo "l_f>     $LOG_FILES" >&2
-	echo "aft:     $AFTER_TIME" >&2
-	echo "bft:     $BEFORE_TIME" >&2
-	echo "width:   $WIDTH" >&2
-	echo "thick:   $THICK" >&2
-	echo "thick_c: $THICK_COUNT" >&2
 }
 
 
@@ -302,7 +320,9 @@ argument_parser "$@" 		# Parse arguments and store them.
 bad_argument_error		# If program has bad arguments it ll exit with error
 store_input			# Store inputs to READ_INPUT 
 
+
 #FILTER SECTION #################################
+
 # Filter olny before and after time 
 FILTER=`echo "$READ_INPUT" | awk -F ';' -v a="$BEFORE_TIME" '\$1 < a {print \$0}'`
 READ_INPUT="$FILTER"
@@ -321,14 +341,10 @@ if ! [ -z "$THICK" ]; then #if THICK is not empty
 	done
 	READ_INPUT="$FILTER_SUM"
 fi
-#TODO WIDTH FILTER
-##################################################
+#############################
 
 call_command 		# Just call propriate command based on $COMMAND
-
-
 echo "$READ_INPUT"
-debug_tempo 		# Giv debug information. 
 
 
 
