@@ -147,11 +147,19 @@ hist_ord_comm()
 		# If ticker match with t sum it and print it 
 		filter_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
 		SUM1=`echo "$filter_ticker" | wc -l `
-		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$SUM1"`
+		
+		hash_t=""
+		for ((j=0; (j < $SUM1) && (j < $WIDTH); j++)); do
+			hash_t=`echo "$hash_t#"`
+		done
+		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$hash_t"`
 	done
 	#TODO nahradit %12 promenou s nejdelsim cislem
+
+
+
 	d=`echo "$FILTER_SUM" | sort  -t ':' -k 1`
-	echo "$d" | awk -F ':' '{printf("%-9s : %12.2f  \n"),$1, $2}'
+	echo "$d" | awk -F ':' '{printf("%-9s : %s  \n"),$1, $2}'
 	exit 0
 
 	echo ""
