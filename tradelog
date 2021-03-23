@@ -13,6 +13,7 @@ WIDTH=""
 THICK=""		# Here i store tickers separate by ;
 THICK_COUNT="0"		# Increment after every tick
 IS_T_COM="0"		# Is there command or filter indicator
+IS_T_COM_OR_FIL="0"	# Is there command or filterr 
 
 ##
 # Just printi help and exit with code 0
@@ -85,14 +86,19 @@ pos_comm()
 		# If ticker match with t sum it and print it 
 		filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
 
+		#GETING LAST KNOWN VALUE 
+		last_line=`echo "$filer_ticker" | tail -1`
+		last_value=`echo "$last_line" | awk -F ';' '{print \$4}'`
+
 		filter_sell=`echo "$filer_ticker" | awk -F ';' -v a="sell" '\$3 == a {print \$0}'`  #sell value 
 		filter_buy=`echo "$filer_ticker" | awk -F ';' -v a="buy" '\$3 == a {print \$0}'`  #sell value 
 		
-		SUM1=`echo "$filter_buy" | awk -F ';' '{value = $4 * $6}{sum += value}END{printf("%f.16", sum)}'`
-		SUM2=`echo "$filter_sell" | awk -F ';' '{value = $4 * $6}{sum += value}END{printf("%f.16", sum)}'`
+		SUM1=`echo "$filter_buy" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
+		SUM2=`echo "$filter_sell" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
 
-		filter1="$SUM1;$SUM2"
-		SUM1=`echo "$filter1" | awk -F ';' '{value = $1 - $2}END{printf("%05.22f",value)}'`
+		filter1="$SUM1;$SUM2;$last_value"
+
+		SUM1=`echo "$filter1" | awk -F ';' '{value = ($1-$2)*$3}END{printf("%05.22f",value)}'`
 		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$SUM1"`
 	done
 
@@ -231,7 +237,7 @@ store_input()
 	
 	# IF THERE ARE NO PARRAMETERS i ll store stdin
 	if [ -z "$COMMAND" ] && [ -z "$LOG_FILES" ] && [ -z "$GZ_LOG_FILES" ]; then
-		if [ $IS_T_COM_OR_FIL -eq "1" ]; then
+		if [ "$IS_T_COM_OR_FIL" -eq "1" ]; then
 			echo "ERROR You have to specify ticker ater -t or If there is input from stdin u cant add commands or filters." >&2 
 		else
 			READ_INPUT="${1:-/dev/stdin}"
