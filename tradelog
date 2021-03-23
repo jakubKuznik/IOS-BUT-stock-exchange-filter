@@ -42,6 +42,86 @@ print_help()
 	exit 0
 }
 
+##
+# Parse input arguments and COMMANDS 
+argument_parser()
+{
+	width_indicator="0"
+	if [ "$#" -eq "0" ];then
+		return 0	
+	fi
+	while [ "$#" -gt 0 ]; do
+
+		#COMMAND##################
+		case "$1" in #COMMANDS THERE CAN BE ONLY ONE 
+		list-tick | pos | profit | last-price | hist-ord | graph-pos )
+			
+			if [ "$IS_T_COM" -eq "1" ]; then
+				echo "ERROR Multiple commands are not possible." >&2 
+				exit 2	
+			fi
+			COMMAND="$1"
+			IS_T_COM="1"	# Is there command or filter indicator
+			shift; ;;
+		#HELP###############
+		-h)
+			print_help
+			;;
+		--help)
+			print_help
+			;;
+		#FILTERS#################	
+		-a) #after DATETIME="YYYY-MM-DD HH:MM:SS"
+			if ! [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
+				echo "ERROR date should be in YYYY-MM-DD HH:DD:SS format." >&2 
+				exit 2	
+			fi
+			IS_T_COM_OR_FIL="1"	# Is there command or filterr 
+			AFTER_TIME=$2	
+			shift;shift; ;;
+		-b) #before DATETIME
+			if ! [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
+				echo "ERROR date should be in YYYY-MM-DD HH:DD:SS format." >&2 
+				exit 2	
+			fi
+			BEFORE_TIME="$2"	# write only logs before this time 
+			shift;shift; ;;
+		-t) #ticker
+			if [ -z "$2" ]; then
+				echo "ERROR missing argument after -t" >&2 
+				exit 2	
+			fi
+			THICK="$THICK;$2"
+			THICK_COUNT=`echo "$THICK_COUNT + 1" | bc`		# Increment after every tick
+			shift;shift; ;;
+
+		-w) #width
+
+			if [ "$width_indicator" -eq "1" ]; then
+				echo "ERROR width parameter." >&2 
+				exit 2	
+			fi
+			width_indicator="1"
+			if [ $2 -gt "0" ]; then
+				WIDTH="$2"
+			else
+				echo "ERROR width has to be positive number." >&2 
+				exit 2	
+			fi
+			shift;shift; ;;
+		
+		#LOG#################
+		*) #GETING LOG FILES THERE CAN BE MULTIPLE 
+			if [ `echo  $1 | grep "\.gz"` ]; then  	#if file ends with .gz
+				GZ_LOG_FILES="$1 $GZ_LOG_FILES"		
+			else
+				LOG_FILES="$1 $LOG_FILES"
+			fi
+			shift; ;;
+		esac
+	done
+}
+
 
 ##
 # List unique tickers that are in log
@@ -159,13 +239,11 @@ hist_ord_comm()
 }
 
 ##
-# List of graph values. 
-# Width define longest line 
-# WORKS LIKE POS BUT REPRESENT NUMBERS GRAPHICALY
-graph_pos_comm()
+# find longest nuber in ticker pos that ll be used in graph_pos_comm()
+get_longest_ticker_pos()
 {
 	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`;ticker=$(echo "$ticker" | sort -u) ;sum_ticker=`echo "$ticker" | wc -l`
-	SUM_MAX="0"
+	sum_max="0"
 
 	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
 		t=`echo "$ticker" | sed -n "$i"p`  ;filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
@@ -174,22 +252,31 @@ graph_pos_comm()
 
 		filter_sell=`echo "$filer_ticker" | awk -F ';' -v a="sell" '\$3 == a {print \$0}'` 
 		filter_buy=`echo "$filer_ticker" | awk -F ';' -v a="buy" '\$3 == a {print \$0}'`
-		SUM1=`echo "$filter_buy" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
-		SUM2=`echo "$filter_sell" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
+		sum1=`echo "$filter_buy" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
+		sum2=`echo "$filter_sell" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
 		
-		filter1="$SUM1;$SUM2;$last_value"
-		SUM1=`echo "$filter1" | awk -F ';' '{value = (($1-$2)*$3) }END{printf("%05.22f",value)}'`;
-		var=`awk 'BEGIN{ print "'$SUM1'"<"0" }'` #output = 1 negative number 
+		filter1="$sum1;$sum2;$last_value"
+		sum1=`echo "$filter1" | awk -F ';' '{value = (($1-$2)*$3) }END{printf("%05.22f",value)}'`;
+		var=`awk 'BEGIN{ print "'$sum1'"<"0" }'` #output = 1 negative number 
 		if  [ "$var" -eq "1" ]; then 
-			SUM1=`echo "$filter_sell" | awk -v s=$SUM1  '{value = s-(2*s)}END{printf("%f", value)}'`
+			sum1=`echo "$filter_sell" | awk -v s=$sum1  '{value = s-(2*s)}END{printf("%f", value)}'`
 		fi
-		SUM1=`printf %.0f $SUM1`
-		if [ "$SUM1" -gt "$SUM_MAX" ]; then
-			SUM_MAX="$SUM1"
+		sum1=`printf %.0f $sum1`
+		if [ "$sum1" -gt "$sum_max" ]; then
+			sum_max="$sum1"
 		fi
-
-
 	done
+	ONE_CHAR_REPRES=`echo "$filter_sell" | awk -v s=$sum_max -v w=$WIDTH  '{value = s/w - 0.5}END{printf("%.0f", value)}'`
+}
+##
+# List of graph values. 
+# Width define longest line 
+# WORKS LIKE POS BUT REPRESENT NUMBERS GRAPHICALY
+graph_pos_comm()
+{
+	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`;ticker=$(echo "$ticker" | sort -u) ;sum_ticker=`echo "$ticker" | wc -l`
+	get_longest_ticker_pos
+
 	one_char_repesent=`echo "$filter_sell" | awk -v s=$SUM_MAX -v w=$WIDTH  '{value = s/w - 0.5}END{printf("%.0f", value)}'`
 	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
 		hash_t=""
@@ -205,33 +292,25 @@ graph_pos_comm()
 		SUM1=`echo "$filter_buy" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
 		SUM2=`echo "$filter_sell" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
 
-		
 		filter1="$SUM1;$SUM2;$last_value"
 		SUM1=`echo "$filter1" | awk -F ';' '{value = (($1-$2)*$3) }END{printf("%05.22f",value)}'`
-	
 
-		#porovnani jestli je suma vetší než nula pomoci awk 	
 		var=`awk 'BEGIN{ print "'$SUM1'"<"0" }'` #output = 1 negative number 
-		
 		if [ "$var" -eq "0" ]; then #positive num
-			
 			SUM1=`echo "$SUM1" | awk -v s=$SUM1 '{v = s - 0.5}END{printf("%f", v)}'`;SUM1=`printf %.0f $SUM1`
-			SUM1=`echo "$filter_sell" | awk -v s=$SUM1 -v w=$one_char_repesent '{value = s/w - 0.5}END{printf("%.0f", value)}'`
+			SUM1=`echo "$filter_sell" | awk -v s=$SUM1 -v w=$ONE_CHAR_REPRES '{value = s/w - 0.5}END{printf("%.0f", value)}'`
 			for ((j=0; (j < $SUM1) && (j < $WIDTH); j++)); do
 				hash_t=`echo "$hash_t#"`
 			done	
-
 		else #negaitve num
 			
 			SUM1=`echo "$SUM1" | awk -v s=$SUM1 '{v = s + 0.5}END{printf("%f", v)}'`;SUM1=`printf %.0f $SUM1`
-			SUM1=`echo "$filter_sell" | awk -v s=$SUM1 -v w=$one_char_repesent '{value = s/w + 0.5}END{printf("%.0f", value)}'`
+			SUM1=`echo "$filter_sell" | awk -v s=$SUM1 -v w=$ONE_CHAR_REPRES '{value = s/w + 0.5}END{printf("%.0f", value)}'`
 			width_neg=`echo "$filter_sell" | awk -v s=$WIDTH  '{value = s-(2*s)}END{printf("%.0f", value)}'`
 			for ((j=0; (j > $SUM1) && (j > $width_neg); j--)); do
 				hash_t=`echo "$hash_t!"`;done
-		
 		fi	
 		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$hash_t"`
-	
 	done
 	d=`echo "$FILTER_SUM" | sort -t ':' -k 1`
 	echo "$d" | awk -F ':' '{printf("%-9s : %s  \n"),$1, $2}'
@@ -266,85 +345,6 @@ last_price_comm()
 	exit 0
 }
 
-##
-# Parse input arguments and COMMANDS 
-argument_parser()
-{
-	width_indicator="0"
-	if [ "$#" -eq "0" ];then
-		return 0	
-	fi
-	while [ "$#" -gt 0 ]; do
-
-		#COMMAND##################
-		case "$1" in #COMMANDS THERE CAN BE ONLY ONE 
-		list-tick | pos | profit | last-price | hist-ord | graph-pos )
-			
-			if [ "$IS_T_COM" -eq "1" ]; then
-				echo "ERROR Multiple commands are not possible." >&2 
-				exit 2	
-			fi
-			COMMAND="$1"
-			IS_T_COM="1"	# Is there command or filter indicator
-			shift; ;;
-		#HELP###############
-		-h)
-			print_help
-			;;
-		--help)
-			print_help
-			;;
-		#FILTERS#################	
-		-a) #after DATETIME="YYYY-MM-DD HH:MM:SS"
-			if ! [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
-				echo "ERROR date should be in YYYY-MM-DD HH:DD:SS format." >&2 
-				exit 2	
-			fi
-			IS_T_COM_OR_FIL="1"	# Is there command or filterr 
-			AFTER_TIME=$2	
-			shift;shift; ;;
-		-b) #before DATETIME
-			if ! [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
-				echo "ERROR date should be in YYYY-MM-DD HH:DD:SS format." >&2 
-				exit 2	
-			fi
-			BEFORE_TIME="$2"	# write only logs before this time 
-			shift;shift; ;;
-		-t) #ticker
-			if [ -z "$2" ]; then
-				echo "ERROR missing argument after -t" >&2 
-				exit 2	
-			fi
-			THICK="$THICK;$2"
-			THICK_COUNT=`echo "$THICK_COUNT + 1" | bc`		# Increment after every tick
-			shift;shift; ;;
-
-		-w) #width
-
-			if [ "$width_indicator" -eq "1" ]; then
-				echo "ERROR width parameter." >&2 
-				exit 2	
-			fi
-			width_indicator="1"
-			if [ $2 -gt "0" ]; then
-				WIDTH="$2"
-			else
-				echo "ERROR width has to be positive number." >&2 
-				exit 2	
-			fi
-			shift;shift; ;;
-		
-		#LOG#################
-		*) #GETING LOG FILES THERE CAN BE MULTIPLE 
-			if [ `echo  $1 | grep "\.gz"` ]; then  	#if file ends with .gz
-				GZ_LOG_FILES="$1 $GZ_LOG_FILES"		
-			else
-				LOG_FILES="$1 $LOG_FILES"
-			fi
-			shift; ;;
-		esac
-	done
-}
 
 ##
 # Check if inputs files exist. 
