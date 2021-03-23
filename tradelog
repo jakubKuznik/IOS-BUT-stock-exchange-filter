@@ -135,6 +135,7 @@ last_price_comm()
 
 ##
 # list transaction history in graph format.
+# width define longest line 
 hist_ord_comm()
 {
 	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
@@ -143,8 +144,6 @@ hist_ord_comm()
 	
 	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
 		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
-		
-		# If ticker match with t sum it and print it 
 		filter_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
 		SUM1=`echo "$filter_ticker" | wc -l `
 		
@@ -154,22 +153,117 @@ hist_ord_comm()
 		done
 		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$hash_t"`
 	done
-	#TODO nahradit %12 promenou s nejdelsim cislem
-
-
-
 	d=`echo "$FILTER_SUM" | sort  -t ':' -k 1`
 	echo "$d" | awk -F ':' '{printf("%-9s : %s  \n"),$1, $2}'
 	exit 0
-
-	echo ""
 }
 
 ##
- #
+# List of graph values. 
+# Width define longest line 
+# WORKS LIKE POS BUT REPRESENT NUMBERS GRAPHICALY
 graph_pos_comm()
 {
-	echo ""
+	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`;ticker=$(echo "$ticker" | sort -u) ;sum_ticker=`echo "$ticker" | wc -l`
+	SUM_MAX="0"
+
+	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
+		t=`echo "$ticker" | sed -n "$i"p`  ;filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
+		#GETING LAST KNOWN VALUE 
+		last_line=`echo "$filer_ticker" | tail -1`;last_value=`echo "$last_line" | awk -F ';' '{print \$4}'`
+
+		filter_sell=`echo "$filer_ticker" | awk -F ';' -v a="sell" '\$3 == a {print \$0}'` 
+		filter_buy=`echo "$filer_ticker" | awk -F ';' -v a="buy" '\$3 == a {print \$0}'`
+		SUM1=`echo "$filter_buy" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
+		SUM2=`echo "$filter_sell" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
+		
+		filter1="$SUM1;$SUM2;$last_value"
+		SUM1=`echo "$filter1" | awk -F ';' '{value = (($1-$2)*$3) }END{printf("%05.22f",value)}'`;
+		var=`awk 'BEGIN{ print "'$SUM1'"<"0" }'` #output = 1 negative number 
+		if  [ "$var" -eq "1" ]; then 
+			SUM1=`echo "$filter_sell" | awk -v s=$SUM1  '{value = s-(2*s)}END{printf("%f", value)}'`
+		fi
+		SUM1=`printf %.0f $SUM1`
+		if [ "$SUM1" -gt "$SUM_MAX" ]; then
+			SUM_MAX="$SUM1"
+		fi
+
+
+	done
+	one_char_repesent=`echo "$filter_sell" | awk -v s=$SUM_MAX -v w=$WIDTH  '{value = s/w - 0.5}END{printf("%.0f", value)}'`
+	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
+		hash_t=""
+		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
+		filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
+
+		#GETING LAST KNOWN VALUE 
+		last_line=`echo "$filer_ticker" | tail -1`
+		last_value=`echo "$last_line" | awk -F ';' '{print \$4}'`
+
+		filter_sell=`echo "$filer_ticker" | awk -F ';' -v a="sell" '\$3 == a {print \$0}'`  #sell value 
+		filter_buy=`echo "$filer_ticker" | awk -F ';' -v a="buy" '\$3 == a {print \$0}'`  #sell value 
+		SUM1=`echo "$filter_buy" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
+		SUM2=`echo "$filter_sell" | awk -F ';' '{value = $6}{sum += value}END{printf("%f.16", sum)}'`
+
+		
+		filter1="$SUM1;$SUM2;$last_value"
+		SUM1=`echo "$filter1" | awk -F ';' '{value = (($1-$2)*$3) }END{printf("%05.22f",value)}'`
+	
+
+		#porovnani jestli je suma vetší než nula pomoci awk 	
+		var=`awk 'BEGIN{ print "'$SUM1'"<"0" }'` #output = 1 negative number 
+		
+		if [ "$var" -eq "0" ]; then #positive num
+			
+			SUM1=`echo "$SUM1" | awk -v s=$SUM1 '{v = s - 0.5}END{printf("%f", v)}'`;SUM1=`printf %.0f $SUM1`
+			SUM1=`echo "$filter_sell" | awk -v s=$SUM1 -v w=$one_char_repesent '{value = s/w - 0.5}END{printf("%.0f", value)}'`
+			for ((j=0; (j < $SUM1) && (j < $WIDTH); j++)); do
+				hash_t=`echo "$hash_t#"`
+			done	
+
+		else #negaitve num
+			
+			SUM1=`echo "$SUM1" | awk -v s=$SUM1 '{v = s + 0.5}END{printf("%f", v)}'`;SUM1=`printf %.0f $SUM1`
+			SUM1=`echo "$filter_sell" | awk -v s=$SUM1 -v w=$one_char_repesent '{value = s/w + 0.5}END{printf("%.0f", value)}'`
+			width_neg=`echo "$filter_sell" | awk -v s=$WIDTH  '{value = s-(2*s)}END{printf("%.0f", value)}'`
+			for ((j=0; (j > $SUM1) && (j > $width_neg); j--)); do
+				hash_t=`echo "$hash_t!"`;done
+		
+		fi	
+		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$hash_t"`
+	
+	done
+	d=`echo "$FILTER_SUM" | sort -t ':' -k 1`
+	echo "$d" | awk -F ':' '{printf("%-9s : %s  \n"),$1, $2}'
+	exit 0
+}
+
+##
+# Get last price of Tickers sorted by alphabet.
+last_price_comm()
+{
+	#first get thickers and count them 
+	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
+	ticker=$(echo "$ticker" | sort -u) 
+	
+	sum_ticker=`echo "$ticker" | wc -l`
+	
+	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
+		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
+		
+		# If ticker match with t sum it and print it 
+		filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
+		#GETING LAST KNOWN VALUE 
+		last_line=`echo "$filer_ticker" | tail -1`
+		last_value=`echo "$last_line" | awk -F ';' '{print \$4}'`
+
+		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$last_value"`
+	done
+
+	#TODO nahradit %12 promenou s nejdelsim cislem
+	d=`echo "$FILTER_SUM" | sort -t ':' -k 1`
+	echo "$d" | awk -F ':' '{printf("%-9s : %12.2f  \n"),$1, $2}'
+	exit 0
 }
 
 ##
@@ -192,9 +286,7 @@ argument_parser()
 			fi
 			COMMAND="$1"
 			IS_T_COM="1"	# Is there command or filter indicator
-			shift   #argmunet co našel provede a záhodí a nyní má index číslo 1 argmunet číslo 2 protože se to posune 
-			;;
-	
+			shift; ;;
 		#HELP###############
 		-h)
 			print_help
@@ -210,18 +302,14 @@ argument_parser()
 			fi
 			IS_T_COM_OR_FIL="1"	# Is there command or filterr 
 			AFTER_TIME=$2	
-			shift
-			shift
-			;;
+			shift;shift; ;;
 		-b) #before DATETIME
 			if ! [ "$(date -d "$2" +"%F %T" 2> /dev/null)" = "$2" ]; then
 				echo "ERROR date should be in YYYY-MM-DD HH:DD:SS format." >&2 
 				exit 2	
 			fi
 			BEFORE_TIME="$2"	# write only logs before this time 
-			shift
-			shift
-			;;
+			shift;shift; ;;
 		-t) #ticker
 			if [ -z "$2" ]; then
 				echo "ERROR missing argument after -t" >&2 
@@ -229,9 +317,7 @@ argument_parser()
 			fi
 			THICK="$THICK;$2"
 			THICK_COUNT=`echo "$THICK_COUNT + 1" | bc`		# Increment after every tick
-			shift
-			shift
-			;;
+			shift;shift; ;;
 
 		-w) #width
 
@@ -246,9 +332,7 @@ argument_parser()
 				echo "ERROR width has to be positive number." >&2 
 				exit 2	
 			fi
-			shift
-			shift
-			;;
+			shift;shift; ;;
 		
 		#LOG#################
 		*) #GETING LOG FILES THERE CAN BE MULTIPLE 
@@ -257,8 +341,7 @@ argument_parser()
 			else
 				LOG_FILES="$1 $LOG_FILES"
 			fi
-			shift
-			;;
+			shift; ;;
 		esac
 	done
 }
