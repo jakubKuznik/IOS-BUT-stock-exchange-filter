@@ -154,12 +154,12 @@ profit_comm()
 # Print actualy holden values sorted from bigest to smallest 
 pos_comm()
 {
+	FILTER_SUM="";SUM1="";SUM2="";LONG_POS="";
 	#first get thickers and count them 
+	
 	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
 	ticker=$(echo "$ticker" | sort -u) 
 	sum_ticker=`echo "$ticker" | wc -l`
-	
-	FILTER_SUM=""
 	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
 		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
 		
@@ -184,8 +184,6 @@ pos_comm()
 	get_longest_ticker_pos
 
 	LONG_POS=`echo -n "$LONG_POS" | wc -c`
-	#echo "$d"
-	#echo ""
 	echo "$d" | awk -F ':' -v l="$CHARS_MAX" '{printf("%-9s :%*.2f\n"),$1, l,  $2}'
 	exit 0
 }
@@ -199,7 +197,8 @@ hist_ord_comm()
 	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
 	ticker=$(echo "$ticker" | sort -u) 
 	sum_ticker=`echo "$ticker" | wc -l`
-	
+
+	FILTER_SUM="";SUM1="";SUM2="";
 	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
 		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
 		filter_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
@@ -261,11 +260,11 @@ get_longest_ticker_pos()
 # WORKS LIKE POS BUT REPRESENT NUMBERS GRAPHICALY
 graph_pos_comm()
 {
+	FILTER_SUM="";SUM1="";SUM2="";
 	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`;ticker=$(echo "$ticker" | sort -u) ;sum_ticker=`echo "$ticker" | wc -l`
 	get_longest_ticker_pos
 
 	one_char_repesent=`echo "$filter_sell" | awk -v s=$SUM_MAX -v w=$WIDTH  '{value = s/w - 0.5}END{printf("%.0f", value)}'`
-	FILTER_SUM=""
 	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
 		hash_t=""
 		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
@@ -407,10 +406,10 @@ call_command()
 }
 
 
+READ_INPUT="";FILTER="";FILTER_SUM=""
 argument_parser "$@" 		# Parse arguments and store them.
 bad_argument_error		# If program has bad arguments it ll exit with error
 store_input			# Store inputs to READ_INPUT 
-
 
 #FILTER SECTION #################################
 
@@ -432,13 +431,9 @@ if ! [ -z "$THICK" ]; then #if THICK is not empty
 	done
 	READ_INPUT=`echo "$FILTER_SUM"`
 	READ_INPUT=`echo "$READ_INPUT" | sort -t ";" -k1,1 `
-	READ_INPUT=`echo "$READ_INPUT" | grep -v -e '^$'`
 fi
 #############################
+READ_INPUT=`echo "$READ_INPUT" | grep -v -e '^$'`
 
 call_command 		# Just call propriate command based on $COMMAND
 echo "$READ_INPUT"
-
-
-
-
