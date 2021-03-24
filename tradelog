@@ -102,7 +102,7 @@ argument_parser()
 				exit 2	
 			fi
 			width_indicator="1"
-			if [ $2 -gt "0" ]; then
+			if [ "$2" -gt "0" ]; then
 				WIDTH="$2"
 			else
 				echo "ERROR width has to be positive number." >&2 
@@ -112,7 +112,7 @@ argument_parser()
 		
 		#LOG#################
 		*) #GETING LOG FILES THERE CAN BE MULTIPLE 
-			if [ `echo  $1 | grep "\.gz"` ]; then  	#if file ends with .gz
+			if [ `echo  "$1" | grep "\.gz"` ]; then  	#if file ends with .gz
 				GZ_LOG_FILES="$1 $GZ_LOG_FILES"		
 			else
 				LOG_FILES="$1 $LOG_FILES"
@@ -317,7 +317,7 @@ graph_pos_comm()
 	exit 0
 }
 
-##
+#
 # Get last price of Tickers sorted by alphabet.
 last_price_comm()
 {
@@ -381,7 +381,6 @@ store_input()
 	else
 		READ_INPUT=$(cat $LOG_FILES)
 	fi
-	READ_INPUT=$(echo "$READ_INPUT" | sort -u) 
 }
 
 ##
@@ -423,14 +422,16 @@ READ_INPUT="$FILTER"
 #Filter by given ticker
 if ! [ -z "$THICK" ]; then #if THICK is not empty
 
-	FILTER_SUM=""
 	# For every ticker in THICK
-	for ((i=2; i <= $THICK_COUNT+1; i++)); do
+	FILTER_SUM=""
+	for ((i=1; i <= $THICK_COUNT+1; i++)); do
 		one_thick=`echo $THICK | cut -d ";" -f $i`
 		FILTER=`echo "$READ_INPUT" | awk -F ';' -v a="$one_thick" '\$2 == a {print \$0}'`
 		FILTER_SUM=`echo "$FILTER_SUM" & echo "$FILTER"`
 	done
-	READ_INPUT="$FILTER_SUM"
+	READ_INPUT=`echo "$FILTER_SUM"`
+	READ_INPUT=`echo "$READ_INPUT" | sort -t ";" -k1,1 `
+	READ_INPUT=`echo "$READ_INPUT" | grep -v -e '^$'`
 fi
 #############################
 
