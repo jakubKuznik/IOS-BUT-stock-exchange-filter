@@ -190,38 +190,6 @@ pos_comm()
 	exit 0
 }
 
-##
-# Get last price of Tickers sorted by alphabet.
-last_price_comm()
-{
-	#first get thickers and count them 
-	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
-	ticker=$(echo "$ticker" | sort -u) 
-	
-	sum_ticker=`echo "$ticker" | wc -l`
-	
-	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
-		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
-		
-		# If ticker match with t sum it and print it 
-		filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
-		#GETING LAST KNOWN VALUE 
-		last_line=`echo "$filer_ticker" | tail -1`
-		last_value=`echo "$last_line" | awk -F ';' '{print \$4}'`
-		
-		
-		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$last_value"`
-	done
-
-	
-
-	#TODO nahradit %12 promenou s nejdelsim cislem
-	d=`echo "$FILTER_SUM" | sort -t ':' -k 1`
-	
-	echo "$d" | awk -F ':' '{printf("%-9s : %12.2f  \n"),$1, $2}'
-	
-	exit 0
-}
 
 ##
 # list transaction history in graph format.
@@ -336,13 +304,14 @@ graph_pos_comm()
 	exit 0
 }
 
-#
+##
 # Get last price of Tickers sorted by alphabet.
 last_price_comm()
 {
 	#first get thickers and count them 
 	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`
 	ticker=$(echo "$ticker" | sort -u) 
+	CHARS_MAX="0"
 	
 	sum_ticker=`echo "$ticker" | wc -l`
 	
@@ -351,16 +320,22 @@ last_price_comm()
 		
 		# If ticker match with t sum it and print it 
 		filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
-		#GETING LAST KNOWN VALUE
+		#GETING LAST KNOWN VALUE 
 		last_line=`echo "$filer_ticker" | tail -1`
 		last_value=`echo "$last_line" | awk -F ';' '{print \$4}'`
-
+			
+		ch_m=`echo "$last_value" | awk -F ';' -v v="$last_value" 'END{printf("%0.2f",v)}'`;
+		ch_m=` echo "$last_value" | wc -c`
+		if [ "$ch_m" -gt "$CHARS_MAX" ]; then
+			CHARS_MAX="$ch_m"
+		fi
+		
 		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$last_value"`
 	done
-
-	#TODO nahradit %12 promenou s nejdelsim cislem
 	d=`echo "$FILTER_SUM" | sort -t ':' -k 1`
-	echo "$d" | awk -F ':' '{printf("%-9s : %12.2f  \n"),$1, $2}'
+	
+	echo "$d" | awk -F ':' -v l="$CHARS_MAX" '{printf("%-9s :%*.2f\n"),$1, l, $2}'
+	
 	exit 0
 }
 
