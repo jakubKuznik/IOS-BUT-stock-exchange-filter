@@ -159,6 +159,7 @@ pos_comm()
 	ticker=$(echo "$ticker" | sort -u) 
 	sum_ticker=`echo "$ticker" | wc -l`
 	
+	FILTER_SUM=""
 	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
 		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
 		
@@ -180,7 +181,12 @@ pos_comm()
 	done
 	#TODO nahradit %12 promenou s nejdelsim cislem
 	d=`echo "$FILTER_SUM" | sort -n -r -t ':' -k 2`
-	echo "$d" | awk -F ':' '{printf("%-9s : %12.2f  \n"),$1, $2}'
+	get_longest_ticker_pos
+
+	LONG_POS=`echo -n "$LONG_POS" | wc -c`
+	#echo "$d"
+	#echo ""
+	echo "$d" | awk -F ':' -v l="$CHARS_MAX" '{printf("%-9s :%*.2f\n"),$1, l,  $2}'
 	exit 0
 }
 
@@ -202,12 +208,16 @@ last_price_comm()
 		#GETING LAST KNOWN VALUE 
 		last_line=`echo "$filer_ticker" | tail -1`
 		last_value=`echo "$last_line" | awk -F ';' '{print \$4}'`
-
+		
+		
 		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$last_value"`
 	done
 
+	
+
 	#TODO nahradit %12 promenou s nejdelsim cislem
 	d=`echo "$FILTER_SUM" | sort -t ':' -k 1`
+	
 	echo "$d" | awk -F ':' '{printf("%-9s : %12.2f  \n"),$1, $2}'
 	
 	exit 0
@@ -244,6 +254,7 @@ get_longest_ticker_pos()
 {
 	ticker=`echo "$READ_INPUT" | awk -F ';' '{print \$2}'`;ticker=$(echo "$ticker" | sort -u) ;sum_ticker=`echo "$ticker" | wc -l`
 	sum_max="0"
+	CHARS_MAX="0"
 
 	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
 		t=`echo "$ticker" | sed -n "$i"p`  ;filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
@@ -258,6 +269,13 @@ get_longest_ticker_pos()
 		filter1="$sum1;$sum2;$last_value"
 		sum1=`echo "$filter1" | awk -F ';' '{value = (($1-$2)*$3) }END{printf("%05.22f",value)}'`;
 		var=`awk 'BEGIN{ print "'$sum1'"<"0" }'` #output = 1 negative number 
+		
+		ch_m=`echo "$sum1" | awk -F ';' -v v="$sum1" 'END{printf("%0.2f",v)}'`;
+		ch_m=` echo "$ch_m" | wc -c`
+		if [ "$ch_m" -gt "$CHARS_MAX" ]; then
+			CHARS_MAX="$ch_m"
+		fi
+
 		if  [ "$var" -eq "1" ]; then 
 			sum1=`echo "$filter_sell" | awk -v s=$sum1  '{value = s-(2*s)}END{printf("%f", value)}'`
 		fi
@@ -266,6 +284,7 @@ get_longest_ticker_pos()
 			sum_max="$sum1"
 		fi
 	done
+	LONG_POS=`echo "$filter_sell" | awk -v s=$sum_max -v w=$WIDTH  '{value = s}END{printf("%.2f", value)}'`
 	ONE_CHAR_REPRES=`echo "$filter_sell" | awk -v s=$sum_max -v w=$WIDTH  '{value = s/w - 0.5}END{printf("%.0f", value)}'`
 }
 ##
@@ -332,7 +351,7 @@ last_price_comm()
 		
 		# If ticker match with t sum it and print it 
 		filer_ticker=`echo "$READ_INPUT" | awk -F ';' -v a="$t" '\$2 == a {print \$0}'`
-		#GETING LAST KNOWN VALUE 
+		#GETING LAST KNOWN VALUE
 		last_line=`echo "$filer_ticker" | tail -1`
 		last_value=`echo "$last_line" | awk -F ';' '{print \$4}'`
 
