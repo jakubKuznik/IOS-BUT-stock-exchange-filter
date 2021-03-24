@@ -1,3 +1,8 @@
+TESTY:
+    https://github.com/ondrej-mach/iotest/tree/main
+
+
+
 Popis
 
     Skript filtruje záznamy z nástroje pro obchodování na burze. Pokud je skriptu zadán také příkaz, nad filtrovanými záznamy daný příkaz provede.
