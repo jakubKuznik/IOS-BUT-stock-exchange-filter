@@ -212,7 +212,7 @@ hist_ord_comm()
 		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$hash_t"`
 	done
 	d=`echo "$FILTER_SUM" | sort  -t ':' -k 1`
-	echo "$d" | awk -F ':' '{printf("%-9s : %s  \n"),$1, $2}'
+	echo "$d" | awk -F ':' '{printf("%-9s : %s\n"),$1, $2}'
 	exit 0
 }
 
@@ -265,6 +265,7 @@ graph_pos_comm()
 	get_longest_ticker_pos
 
 	one_char_repesent=`echo "$filter_sell" | awk -v s=$SUM_MAX -v w=$WIDTH  '{value = s/w - 0.5}END{printf("%.0f", value)}'`
+	FILTER_SUM=""
 	for ((i=1; i <= $sum_ticker; i++)); do    #walk throught tickers 
 		hash_t=""
 		t=`echo "$ticker" | sed -n "$i"p` #get one ticker  
@@ -296,11 +297,17 @@ graph_pos_comm()
 			width_neg=`echo "$filter_sell" | awk -v s=$WIDTH  '{value = s-(2*s)}END{printf("%.0f", value)}'`
 			for ((j=0; (j > $SUM1) && (j > $width_neg); j--)); do
 				hash_t=`echo "$hash_t!"`;done
+		fi
+
+		b=` echo "$hash_t" | wc -c`
+		if [ "$b" -eq "1" ];then
+			FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:"`
+			continue
 		fi	
-		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t:$hash_t"`
+		FILTER_SUM=`echo "$FILTER_SUM" & echo "$t: $hash_t"`
 	done
 	d=`echo "$FILTER_SUM" | sort -t ':' -k 1`
-	echo "$d" | awk -F ':' '{printf("%-9s : %s  \n"),$1, $2}'
+	echo "$d" | awk -F ':' '{printf("%-9s :%s\n"),$1, $2}'
 	exit 0
 }
 
