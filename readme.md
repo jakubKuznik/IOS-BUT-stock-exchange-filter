@@ -1,3 +1,9 @@
+
+FIT VUT <br />
+IOS - Operační systémy <br />
+1.projekt <br /><br />
+
+
 TESTY:
     https://github.com/ondrej-mach/iotest/tree/main
 
